@@ -2,12 +2,97 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const response = await fetch("http://localhost:3001/data");
         const data = await response.json();
-        let filteredData = [...data]; // Keep original data separate
-        let pinnedStudent = null; // Track pinned student
+        let filteredData = [...data];
+        let pinnedStudent = null;
         const leaderboardBody = document.getElementById('leaderboard-body');
         const sectionFilter = document.getElementById('section-filter');
         const searchInput = document.getElementById('search-input');
         const clearPinBtn = document.getElementById('clear-pin');
+        
+        // Comparison elements
+        const student1Input = document.getElementById('student1-input');
+        const student2Input = document.getElementById('student2-input');
+        const compareBtn = document.getElementById('compare-btn');
+        const comparisonResults = document.getElementById('comparison-results');
+        const comparisonError = document.getElementById('comparison-error');
+
+        // Function to find student by name or roll number
+        const findStudent = (searchTerm) => {
+            return data.find(student => 
+                student.name.toLowerCase() === searchTerm.toLowerCase() ||
+                student.roll.toLowerCase() === searchTerm.toLowerCase()
+            );
+        };
+
+        // Function to compare two numbers and return a comparison string
+        const compareValues = (val1, val2, student1Name, student2Name) => {
+            if (val1 > val2) return `${student1Name} > ${student2Name}`;
+            if (val1 < val2) return `${student2Name} > ${student1Name}`;
+            return "Equal";
+        };
+
+        // Function to create comparison table
+        const createComparisonTable = (student1, student2) => {
+            const metrics = [
+                { label: 'Total Solved', key: 'totalSolved' },
+                { label: 'Easy', key: 'easySolved' },
+                { label: 'Medium', key: 'mediumSolved' },
+                { label: 'Hard', key: 'hardSolved' }
+            ];
+
+            let tableHTML = `
+                <table class="comparison-table">
+                    <tr>
+                        <th>Metric</th>
+                        <th>${student1.name}</th>
+                        <th>${student2.name}</th>
+                        <th>Result</th>
+                    </tr>
+            `;
+
+            metrics.forEach(({ label, key }) => {
+                const val1 = student1[key] || 0;
+                const val2 = student2[key] || 0;
+                const comparison = compareValues(val1, val2, student1.name, student2.name);
+                const winnerClass = val1 !== val2 ? 'winner' : '';
+
+                tableHTML += `
+                    <tr>
+                        <td>${label}</td>
+                        <td class="${val1 > val2 ? winnerClass : ''}">${val1}</td>
+                        <td class="${val2 > val1 ? winnerClass : ''}">${val2}</td>
+                        <td>${comparison}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</table>';
+            return tableHTML;
+        };
+
+        // Handle comparison
+        const handleComparison = () => {
+            const student1 = findStudent(student1Input.value);
+            const student2 = findStudent(student2Input.value);
+
+            comparisonError.classList.add('hidden');
+            comparisonResults.classList.add('hidden');
+
+            if (!student1 || !student2) {
+                comparisonError.textContent = "One or both students not found";
+                comparisonError.classList.remove('hidden');
+                return;
+            }
+
+            if (student1 === student2) {
+                comparisonError.textContent = "Please select different students";
+                comparisonError.classList.remove('hidden');
+                return;
+            }
+
+            comparisonResults.innerHTML = createComparisonTable(student1, student2);
+            comparisonResults.classList.remove('hidden');
+        };
 
         // Populate section filter dropdown
         const populateSectionFilter = () => {
@@ -68,15 +153,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const renderLeaderboard = (sortedData) => {
             leaderboardBody.innerHTML = '';
 
-            // Render pinned student first if exists
             if (pinnedStudent) {
                 const pinnedRow = createStudentRow(pinnedStudent, -1, true);
                 leaderboardBody.appendChild(pinnedRow);
             }
 
-            // Render rest of the students
             sortedData.forEach((student, index) => {
-                if (pinnedStudent && student.roll === pinnedStudent.roll) return; // Skip pinned student
+                if (pinnedStudent && student.roll === pinnedStudent.roll) return;
                 const row = createStudentRow(student, index);
                 leaderboardBody.appendChild(row);
             });
@@ -107,7 +190,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td class="p-4 text-red-400">${student.hardSolved || 'N/A'}</td>
             `;
 
-            // Add pin functionality
             row.addEventListener('dblclick', () => {
                 if (!isPinned) {
                     pinStudent(student);
@@ -130,7 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderLeaderboard(filteredData);
         };
 
-        // Sorting logic with ascending and descending functionality
+        // Sorting logic
         let totalSolvedDirection = 'desc';
         let easySolvedDirection = 'desc';
         let mediumSolvedDirection = 'desc';
@@ -155,25 +237,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateSectionFilter();
         renderLeaderboard(data);
 
-        // Search input event listener
+        // Event Listeners
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value;
             const currentSection = sectionFilter.value;
             filterData(currentSection, searchTerm);
         });
 
-        // Section filter event listener
         sectionFilter.addEventListener('change', (e) => {
             const searchTerm = searchInput.value;
             filterData(e.target.value, searchTerm);
         });
 
-        // Clear pin button event listener
         clearPinBtn.addEventListener('click', clearPin);
 
-        // Export button event listener
         document.getElementById('export-btn').addEventListener('click', () => {
-            exportToCSV(filteredData); // Export only filtered data
+            exportToCSV(filteredData);
+        });
+
+        // Comparison event listeners
+        compareBtn.addEventListener('click', handleComparison);
+
+        // Add input event listeners for auto-completion suggestions
+        [student1Input, student2Input].forEach(input => {
+            input.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                // Clear error when user starts typing
+                comparisonError.classList.add('hidden');
+            });
         });
 
         // Sorting event listeners
