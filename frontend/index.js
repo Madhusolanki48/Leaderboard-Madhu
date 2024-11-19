@@ -2,11 +2,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const response = await fetch("http://localhost:3001/data");
         const data = await response.json();
-        let filteredData = [...data];
-        let pinnedStudent = null;
+        let filteredData = [...data]; // Keep original data separate
+        let pinnedStudent = null; // Track pinned student
         const leaderboardBody = document.getElementById('leaderboard-body');
         const sectionFilter = document.getElementById('section-filter');
-        const clearPinButton = document.getElementById('clear-pin');
+        const searchInput = document.getElementById('search-input');
+        const clearPinBtn = document.getElementById('clear-pin');
 
         // Populate section filter dropdown
         const populateSectionFilter = () => {
@@ -49,73 +50,87 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.body.removeChild(link);
         };
 
-        // Function to handle pinning
-        const handlePin = (student) => {
+        // Function to handle pinning a student
+        const pinStudent = (student) => {
             pinnedStudent = student;
-            clearPinButton.classList.remove('hidden');
+            clearPinBtn.classList.remove('hidden');
             renderLeaderboard(filteredData);
         };
 
-        // Function to clear pin
+        // Function to clear pinned student
         const clearPin = () => {
             pinnedStudent = null;
-            clearPinButton.classList.add('hidden');
+            clearPinBtn.classList.add('hidden');
             renderLeaderboard(filteredData);
         };
 
         // Function to render the leaderboard
         const renderLeaderboard = (sortedData) => {
             leaderboardBody.innerHTML = '';
-            
-            // Create a copy of the data to modify
-            let displayData = [...sortedData];
-            
-            // If there's a pinned student, remove them from the main list and add them at the top
+
+            // Render pinned student first if exists
             if (pinnedStudent) {
-                displayData = displayData.filter(student => student.roll !== pinnedStudent.roll);
-                displayData.unshift(pinnedStudent);
+                const pinnedRow = createStudentRow(pinnedStudent, -1, true);
+                leaderboardBody.appendChild(pinnedRow);
             }
-            
-            displayData.forEach((student, index) => {
-                const row = document.createElement('tr');
-                row.classList.add('border-b', 'border-gray-700', 'hover-pin');
-                
-                // Add pinned class if this is the pinned student
-                if (pinnedStudent && student.roll === pinnedStudent.roll) {
-                    row.classList.add('pinned-row');
-                }
-                
-                row.innerHTML = `
-                    <td class="p-4">${index + 1}</td>
-                    <td class="p-4">${student.roll}</td>
-                    <td class="p-4">
-                        ${student.url.startsWith('https://leetcode.com/u/') 
-                            ? `<a href="${student.url}" target="_blank" class="text-blue-400">${student.name}</a>`
-                            : `<div class="text-red-500">${student.name}</div>`}
-                    </td>
-                    <td class="p-4">${student.section || 'N/A'}</td>
-                    <td class="p-4">${student.totalSolved || 'N/A'}</td>
-                    <td class="p-4 text-green-400">${student.easySolved || 'N/A'}</td>
-                    <td class="p-4 text-yellow-400">${student.mediumSolved || 'N/A'}</td>
-                    <td class="p-4 text-red-400">${student.hardSolved || 'N/A'}</td>
-                `;
-                
-                // Add click handler for pinning
-                row.addEventListener('click', () => handlePin(student));
-                
+
+            // Render rest of the students
+            sortedData.forEach((student, index) => {
+                if (pinnedStudent && student.roll === pinnedStudent.roll) return; // Skip pinned student
+                const row = createStudentRow(student, index);
                 leaderboardBody.appendChild(row);
             });
         };
 
-        // Filter function
-        const filterData = (section) => {
-            filteredData = section === 'all' 
-                ? [...data]
-                : data.filter(student => (student.section || 'N/A') === section);
+        // Function to create a student row
+        const createStudentRow = (student, index, isPinned = false) => {
+            const row = document.createElement('tr');
+            row.classList.add('border-b', 'border-gray-700', 'hover-pin');
+            if (isPinned) {
+                row.classList.add('pinned-row');
+            }
+            
+            const rank = isPinned ? '★' : (index + 1);
+            
+            row.innerHTML = `
+                <td class="p-4">${rank}</td>
+                <td class="p-4">${student.roll}</td>
+                <td class="p-4">
+                    ${student.url.startsWith('https://leetcode.com/u/') 
+                        ? `<a href="${student.url}" target="_blank" class="text-blue-400">${student.name}</a>`
+                        : `<div class="text-red-500">${student.name}</div>`}
+                </td>
+                <td class="p-4">${student.section || 'N/A'}</td>
+                <td class="p-4">${student.totalSolved || 'N/A'}</td>
+                <td class="p-4 text-green-400">${student.easySolved || 'N/A'}</td>
+                <td class="p-4 text-yellow-400">${student.mediumSolved || 'N/A'}</td>
+                <td class="p-4 text-red-400">${student.hardSolved || 'N/A'}</td>
+            `;
+
+            // Add pin functionality
+            row.addEventListener('dblclick', () => {
+                if (!isPinned) {
+                    pinStudent(student);
+                }
+            });
+
+            return row;
+        };
+
+        // Enhanced filter function to include search
+        const filterData = (section, searchTerm = '') => {
+            filteredData = data.filter(student => {
+                const matchesSection = section === 'all' || (student.section || 'N/A') === section;
+                const matchesSearch = searchTerm === '' || 
+                    student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    student.roll.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                return matchesSection && matchesSearch;
+            });
             renderLeaderboard(filteredData);
         };
 
-        // Sorting logic
+        // Sorting logic with ascending and descending functionality
         let totalSolvedDirection = 'desc';
         let easySolvedDirection = 'desc';
         let mediumSolvedDirection = 'desc';
@@ -140,15 +155,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateSectionFilter();
         renderLeaderboard(data);
 
-        // Event Listeners
-        clearPinButton.addEventListener('click', clearPin);
-
-        sectionFilter.addEventListener('change', (e) => {
-            filterData(e.target.value);
+        // Search input event listener
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value;
+            const currentSection = sectionFilter.value;
+            filterData(currentSection, searchTerm);
         });
 
+        // Section filter event listener
+        sectionFilter.addEventListener('change', (e) => {
+            const searchTerm = searchInput.value;
+            filterData(e.target.value, searchTerm);
+        });
+
+        // Clear pin button event listener
+        clearPinBtn.addEventListener('click', clearPin);
+
+        // Export button event listener
         document.getElementById('export-btn').addEventListener('click', () => {
-            exportToCSV(filteredData);
+            exportToCSV(filteredData); // Export only filtered data
         });
 
         // Sorting event listeners
@@ -184,5 +209,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Error fetching data:', error);
+        document.getElementById('error-state').classList.remove('hidden');
     }
 });
