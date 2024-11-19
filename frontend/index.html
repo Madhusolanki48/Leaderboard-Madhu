@@ -6,18 +6,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <title>LeetCode Leaderboard</title>
+    <style>
+        .pinned-row {
+            background-color: rgba(59, 130, 246, 0.1);
+            position: relative;
+        }
+        .pinned-row::before {
+            position: absolute;
+            left: -20px;
+        }
+        .hover-pin:hover {
+            background-color: rgba(55, 65, 81, 0.5);
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white p-5">
     <div class="container mx-auto my-10">
         <div class="">
-            <!-- Leaderboard -->
             <div class="col-span-2 bg-gray-800 rounded-lg shadow-md p-6 overflow-x-auto">
                 <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-4xl font-bold">TBPPP-Leaderboard</h1>
-                    <div class="flex gap-4 items-center">
+                    <h1 class="text-4xl font-bold">TBPPP Leaderboard</h1>
+                    <div class="flex gap-4 items-center relative">
+                        <button id="clear-pin" class="hidden bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <i class="fas fa-times mr-2"></i>Remove Pin
+                        </button>
                         <select id="section-filter" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="all">All Sections</option>
-                            <!-- Options will be dynamically added -->
                         </select>
                         <button id="export-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded flex items-center transition duration-150 ease-in-out">
                             <i class="fas fa-download mr-2"></i> Export to CSV

@@ -2,9 +2,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const response = await fetch("http://localhost:3001/data");
         const data = await response.json();
-        let filteredData = [...data]; // Keep original data separate
+        let filteredData = [...data];
+        let pinnedStudent = null;
         const leaderboardBody = document.getElementById('leaderboard-body');
         const sectionFilter = document.getElementById('section-filter');
+        const clearPinButton = document.getElementById('clear-pin');
 
         // Populate section filter dropdown
         const populateSectionFilter = () => {
@@ -47,12 +49,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.body.removeChild(link);
         };
 
+        // Function to handle pinning
+        const handlePin = (student) => {
+            pinnedStudent = student;
+            clearPinButton.classList.remove('hidden');
+            renderLeaderboard(filteredData);
+        };
+
+        // Function to clear pin
+        const clearPin = () => {
+            pinnedStudent = null;
+            clearPinButton.classList.add('hidden');
+            renderLeaderboard(filteredData);
+        };
+
         // Function to render the leaderboard
         const renderLeaderboard = (sortedData) => {
             leaderboardBody.innerHTML = '';
-            sortedData.forEach((student, index) => {
+            
+            // Create a copy of the data to modify
+            let displayData = [...sortedData];
+            
+            // If there's a pinned student, remove them from the main list and add them at the top
+            if (pinnedStudent) {
+                displayData = displayData.filter(student => student.roll !== pinnedStudent.roll);
+                displayData.unshift(pinnedStudent);
+            }
+            
+            displayData.forEach((student, index) => {
                 const row = document.createElement('tr');
-                row.classList.add('border-b', 'border-gray-700');
+                row.classList.add('border-b', 'border-gray-700', 'hover-pin');
+                
+                // Add pinned class if this is the pinned student
+                if (pinnedStudent && student.roll === pinnedStudent.roll) {
+                    row.classList.add('pinned-row');
+                }
+                
                 row.innerHTML = `
                     <td class="p-4">${index + 1}</td>
                     <td class="p-4">${student.roll}</td>
@@ -67,6 +99,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td class="p-4 text-yellow-400">${student.mediumSolved || 'N/A'}</td>
                     <td class="p-4 text-red-400">${student.hardSolved || 'N/A'}</td>
                 `;
+                
+                // Add click handler for pinning
+                row.addEventListener('click', () => handlePin(student));
+                
                 leaderboardBody.appendChild(row);
             });
         };
@@ -79,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderLeaderboard(filteredData);
         };
 
-        // Sorting logic with ascending and descending functionality
+        // Sorting logic
         let totalSolvedDirection = 'desc';
         let easySolvedDirection = 'desc';
         let mediumSolvedDirection = 'desc';
@@ -105,14 +141,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderLeaderboard(data);
 
         // Event Listeners
+        clearPinButton.addEventListener('click', clearPin);
+
         sectionFilter.addEventListener('change', (e) => {
             filterData(e.target.value);
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
-            exportToCSV(filteredData); // Export only filtered data
+            exportToCSV(filteredData);
         });
 
+        // Sorting event listeners
         document.getElementById('sort-section').addEventListener('click', () => {
             sectionDirection = sectionDirection === 'desc' ? 'asc' : 'desc';
             const sortedData = sortData(filteredData, 'section', sectionDirection, false);
