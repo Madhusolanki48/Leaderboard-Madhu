@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <title>LeetCode Leaderboard</title>
     <style>
         .pinned-row {
@@ -18,6 +21,59 @@
         .hover-pin:hover {
             background-color: rgba(55, 65, 81, 0.5);
             cursor: pointer;
+        }
+        /* Comparison Dialog Styles */
+        .comparison-dialog {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #1F2937;
+            padding: 1.5rem;
+            border-radius: 0.5rem 0 0 0.5rem;
+            box-shadow: -4px 0 6px rgba(0, 0, 0, 0.1);
+            width: 320px;
+            z-index: 1000;
+        }
+        .comparison-input {
+            background-color: #374151;
+            border: 1px solid #4B5563;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            width: 100%;
+            margin-bottom: 0.75rem;
+        }
+        .comparison-button {
+            background-color: #2563EB;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .comparison-button:hover {
+            background-color: #1D4ED8;
+        }
+        .comparison-results {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #374151;
+            border-radius: 0.375rem;
+        }
+        .comparison-table {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 0.5rem;
+            text-align: center;
+        }
+        .winner {
+            color: #34D399;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -106,6 +162,18 @@
                         <p>Error loading data. Please try again later.</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Comparison Dialog -->
+        <div id="comparison-dialog" class="comparison-dialog">
+            <h2 class="text-xl font-bold mb-4">Compare Students</h2>
+            <input type="text" id="student1-input" placeholder="Enter first student name/roll" class="comparison-input">
+            <input type="text" id="student2-input" placeholder="Enter second student name/roll" class="comparison-input">
+            <button id="compare-btn" class="comparison-button">Compare</button>
+            <div id="comparison-error" class="text-red-500 mt-2 hidden"></div>
+            <div id="comparison-results" class="comparison-results hidden">
+                <!-- Results will be dynamically added here -->
             </div>
         </div>
     </div>
